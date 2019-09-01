@@ -40,6 +40,8 @@ import com.raywenderlich.android.w00tze.app.Constants.fullUrlString
 import com.raywenderlich.android.w00tze.model.Gist
 import com.raywenderlich.android.w00tze.model.Repo
 import com.raywenderlich.android.w00tze.model.User
+import org.json.JSONArray
+import org.json.JSONException
 import java.io.IOException
 
 
@@ -89,20 +91,26 @@ object BasicRepository : Repository {
       val url = Uri.parse(fullUrlString("/users/${LOGIN}/repos")).toString()
       val jsonString = getUrlAsString(url)
 
-      Log.i(TAG, "Repo data: $jsonString")
-
-      val repos = mutableListOf<Repo>()
-
-      for (i in 0 until 100) {
-        val repo = Repo("repo name")
-        repos.add(repo)
-      }
-
-      return repos
+      return parseRepos(jsonString)
     } catch (e: IOException) {
+      Log.e(TAG, "Error retrieving repos: ${e.localizedMessage}")
+    } catch (e: JSONException) {
       Log.e(TAG, "Error retrieving repos: ${e.localizedMessage}")
     }
     return null
+  }
+
+  private fun parseRepos(jsonString: String) : List<Repo> {
+    val repos = mutableListOf<Repo>()
+
+    val reposArray = JSONArray(jsonString)
+    for (i in 0 until reposArray.length()) {
+      val repoObject = reposArray.getJSONObject(i)
+      val repo = Repo(repoObject.getString("name"))
+      repos.add(repo)
+    }
+
+    return repos
   }
 
   private class FetchReposAsyncTask(val callback: ReposCallback) : AsyncTask<ReposCallback, Void, List<Repo>>() {
