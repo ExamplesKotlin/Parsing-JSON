@@ -69,6 +69,7 @@ object BasicRepository : Repository {
     }).execute()
 
     return liveData
+
   }
 
   override fun getUser(): LiveData<User> {
@@ -95,7 +96,7 @@ object BasicRepository : Repository {
     } catch (e: IOException) {
       Log.e(TAG, "Error retrieving repos: ${e.localizedMessage}")
     } catch (e: JSONException) {
-      Log.e(TAG, "Error retrieving repos: ${e.localizedMessage}")
+      Log.e(TAG, "Error retrieving JSON repos: ${e.localizedMessage}")
     }
     return null
   }
@@ -111,6 +112,21 @@ object BasicRepository : Repository {
     }
 
     return repos
+  }
+
+  private fun parseGists(jsonString: String) : List<Gist> {
+    val gists = mutableListOf<Gist>()
+
+    val gistsArray = JSONArray(jsonString)
+    for (i in 0 until gistsArray.length()) {
+      val gistObject = gistsArray.getJSONObject(i)
+      val createdAt = gistObject.getString("created_at")
+      val description = gistObject.getString("description")
+      val gist = Gist(createdAt, description)
+      gists.add(gist)
+    }
+
+    return gists
   }
 
   private class FetchReposAsyncTask(val callback: ReposCallback) : AsyncTask<ReposCallback, Void, List<Repo>>() {
@@ -131,18 +147,11 @@ object BasicRepository : Repository {
       val url = Uri.parse(fullUrlString("/users/$LOGIN/gists")).toString()
       val jsonString = getUrlAsString(url)
 
-      Log.i(TAG, "Gist data: $jsonString")
-
-      val gists = mutableListOf<Gist>()
-
-      for (i in 0 until 100) {
-        val gist = Gist("2018-02-23T17:42:52Z", "w00t")
-        gists.add(gist)
-      }
-
-      return gists
+      return parseGists(jsonString)
     } catch (e: IOException) {
       Log.e(TAG, "Error retrieving gists: ${e.localizedMessage}")
+    } catch (e: JSONException) {
+      Log.e(TAG, "Error retrieving json gists: ${e.localizedMessage}")
     }
     return null
   }
